@@ -3,11 +3,11 @@ use std::ops::DerefMut;
 use bytemuck::{Pod, Zeroable};
 use wgpu::{Buffer, RenderPipeline, util::DeviceExt};
 
-use crate::{vec2::Vector2, renderer::Renderer, color::Color};
+use crate::{vec2::Vector2, renderer::Renderer, color::Color, create_pipeline, write_buffer, render_pass};
 
 use super::PhysPipeline;
 
-const DEFAULT_MAX_GRIDS: usize = 10;
+const DEFAULT_MAX_GRIDS: usize = 1;
 const INDICES: &[u16] = &[0, 1, 2, 0, 2, 3];
 
 #[repr(C)]
@@ -83,62 +83,7 @@ impl GridPipeline {
 
 impl PhysPipeline for GridPipeline {
     fn create(renderer: &mut crate::renderer::Renderer) -> Self {
-        // Create shader
-        let shader = renderer.device.create_shader_module(wgpu::include_wgsl!("../shaders/grid.wgsl"));
-
-        // Create buffers
-        let instance_buffer = renderer.device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Grid instance buffer"),
-            size: (std::mem::size_of::<crate::pipelines::grid::Grid>() * crate::pipelines::grid::DEFAULT_MAX_GRIDS) as u64,
-            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-
-        // Create index buffer
-        let index_buffer = renderer.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Grid index buffer"),
-            contents: bytemuck::cast_slice(crate::pipelines::grid::INDICES),
-            usage: wgpu::BufferUsages::INDEX,
-        });
-
-        // Create render pipeline layout
-        let render_pipeline_layout = renderer.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("Grid pipeline layout"),
-            bind_group_layouts: &[&renderer.globals_bind_group_layout],
-            push_constant_ranges: &[],
-        });
-
-        // Create pipeline
-        let pipeline = renderer.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Grid pipeline"),
-            layout: Some(&render_pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: "vs_main",
-                buffers: &[Grid::desc()],
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: "fs_main",
-                targets: &[Some(wgpu::ColorTargetState {
-                    format: renderer.format,
-                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-            }),
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
-                strip_index_format: None,
-                front_face: wgpu::FrontFace::Ccw,
-                cull_mode: Some(wgpu::Face::Back),
-                polygon_mode: wgpu::PolygonMode::Fill,
-                unclipped_depth: false,
-                conservative: false,
-            },
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState::default(),
-            multiview: None,
-        });
+        let (instance_buffer, index_buffer, pipeline) = create_pipeline!(grid, Grid { renderer: renderer, max_default: DEFAULT_MAX_GRIDS, index: INDICES });
 
         Self {
             instances: instance_buffer,
@@ -156,35 +101,15 @@ impl PhysPipeline for GridPipeline {
 
         // set instance buffer
         let grids = self.grids.as_ref().unwrap();
-        let instance_bytes: &[u8] = bytemuck::cast_slice(grids.as_slice());
-        let mut instance_buffer = renderer.staging_belt.write_buffer(
-            encoder,
-            &self.instances,
-            0,
-            wgpu::BufferSize::new(instance_bytes.len() as u64).unwrap(),
-            &renderer.device);
-
-        instance_buffer.copy_from_slice(instance_bytes);
+        write_buffer!(grids, self, renderer, encoder);
 
         // Render pass
-        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("Grid render pass"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Load,
-                    store: true,
-                },
-            })],
-            depth_stencil_attachment: None,
-        });
+        let mut render_pass = render_pass!(encoder, view);
 
         render_pass.set_pipeline(&self.pipeline);
         render_pass.set_bind_group(0, &renderer.globals_bind_group, &[]);
         render_pass.set_vertex_buffer(0, self.instances.slice(..));
         render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
         render_pass.draw(0..INDICES.len() as u32, 0..grids.len() as u32);
-
     }
 }
