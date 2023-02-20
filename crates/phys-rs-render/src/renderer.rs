@@ -4,12 +4,7 @@ use egui_wgpu_backend::RenderPass;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
-use crate::{Scene, pipeline::{pipelines::{GridPipeline, CirclePipeline}, PhysPipeline, elements::Grid}, color::StandardColorPalette, vec2::Vector2};
-
-pub struct RenderPipelines {
-    grid: GridPipeline,
-    circle: CirclePipeline,
-}
+use crate::{Scene, pipeline::{pipelines::{GridPipeline, CirclePipeline}, PhysPipeline, elements::{Grid, Circle}}, color::{StandardColorPalette, Color}, vec2::Vector2};
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
@@ -35,7 +30,7 @@ pub struct Renderer {
     pub globals_bind_group_layout: wgpu::BindGroupLayout,
     pub globals_bind_group: wgpu::BindGroup,
 
-    pub pipelines: Option<RenderPipelines>,
+    pub brush: Option<Brush>,
 
     has_to_update_globals: bool,
 }
@@ -138,31 +133,15 @@ impl Renderer {
 
             surface_config,
 
-            pipelines: None,
+            brush: None,
             has_to_update_globals: false,
         };
 
-        // Grid
-        let mut grid_pipeline = GridPipeline::create(&mut s);
-        grid_pipeline.set_grids(vec![
-            Grid::fullscreen(StandardColorPalette::GRID, 30.0, 1.0, 5),
-        ]);
-
-        // Circle
-        let mut circle_pipeline = CirclePipeline::create(&mut s);
-        // TODO: remove, this is just for testing
-        circle_pipeline.set_circles(Some(vec![
-            crate::pipeline::elements::Circle::create(Vector2::new(100.0, 100.0), 25.0, StandardColorPalette::WHITE, 0.0),
-            crate::pipeline::elements::Circle::create(Vector2::new(200.0, 100.0), 25.0, StandardColorPalette::GREEN, 2.0),
-        ]));
-
-        let pipelines = RenderPipelines {
-            grid: grid_pipeline,
-            circle: circle_pipeline,
-        };
+        // Brush
+        let brush = Brush::new(&mut s);
 
         Self {
-            pipelines: Some(pipelines),
+            brush: Some(brush),
             ..s
         }
     }
@@ -221,11 +200,11 @@ impl Renderer {
         }
 
         // Draw pipelines
-        if self.pipelines.is_some() {
-            let pipelines = self.pipelines.take().unwrap();
-            pipelines.grid.execute(self, &mut encoder, &view);
-            pipelines.circle.execute(self, &mut encoder, &view);
-            self.pipelines = Some(pipelines)
+        if self.brush.is_some() {
+            let mut pipelines = self.brush.take().unwrap();
+            pipelines.execute(self, &mut encoder, &view);
+            pipelines.clear();
+            self.brush = Some(pipelines)
         }
 
         // draw egui
@@ -269,5 +248,45 @@ impl Renderer {
         // Clear the egui textures
         self.egui_rpass.remove_textures(tdelta).expect("remove textures ok");
 
+    }
+}
+
+
+// ====< BRUSH >====
+pub struct Brush {
+    // pipelines
+    pub grid_pipeline: GridPipeline,
+    pub circle_pipeline: CirclePipeline,
+}
+
+impl Brush {
+    pub fn new(renderer: &mut Renderer) -> Self {
+        let mut grid = GridPipeline::create(renderer);
+        grid.set_grids(vec![
+            Grid::fullscreen(StandardColorPalette::GRID, 30.0, 1.0, 5)
+        ]);
+        Self {
+            grid_pipeline: grid,
+            circle_pipeline: CirclePipeline::create(renderer),
+        }
+    }
+
+    pub fn execute(&mut self, renderer: &mut Renderer, encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView) {
+        self.grid_pipeline.execute(renderer, encoder, view);
+        self.circle_pipeline.execute(renderer, encoder, view);
+    }
+
+    // ====< BASIC >====
+    pub fn clear(&mut self) {
+        self.circle_pipeline.clear();
+    }
+
+    // ====< PRIMITIVES >====
+    // Circle
+    pub fn draw_circle(&mut self, center: Vector2, radius: f32, color: Color, thickness: f32) {
+        self.circle_pipeline.add_circle(Circle::create(center, radius, color, thickness));
+    }
+    pub fn draw_circle_filled(&mut self, center: Vector2, radius: f32, color: Color) {
+        self.circle_pipeline.add_circle(Circle::create(center, radius, color, 0.0));
     }
 }

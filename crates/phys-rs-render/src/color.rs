@@ -70,6 +70,17 @@ impl From<Color> for wgpu::Color {
     }
 }
 
+impl From<[f32; 4]> for Color {
+    fn from(color: [f32; 4]) -> Self {
+        Self {
+            r: color[0],
+            g: color[1],
+            b: color[2],
+            a: color[3],
+        }
+    }
+}
+
 impl From<Color> for [f32; 4] {
     fn from(color: Color) -> Self {
         color.to_linear_rgb()

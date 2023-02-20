@@ -1,12 +1,20 @@
+use std::thread;
+
 use color::{Color, StandardColorPalette};
-use winit::{window::{WindowBuilder}, dpi::PhysicalSize, event_loop::{EventLoop, ControlFlow}, event::{Event, WindowEvent}};
+use winit::{window::{WindowBuilder}, dpi::PhysicalSize, event_loop::{EventLoop, ControlFlow}, event::{Event, WindowEvent}, platform::run_return::EventLoopExtRunReturn};
 
 mod renderer;
 mod color;
 mod vec2;
 mod pipeline;
 
-use renderer::Renderer;
+pub use renderer::{Renderer, Brush};
+
+// ====< EXPORTS >====
+pub use color::StandardColorPalette as ColorPalette;
+pub mod math {
+    pub use crate::vec2::Vector2;
+}
 
 // ====< PHYS APP >====
 pub struct PhysApp {
@@ -25,7 +33,7 @@ impl PhysApp {
             .build(&event_loop)
             .unwrap();
         let renderer = Renderer::new(window);
-        let scene = Scene::new();
+        let scene = Scene::default();
 
         Self {
             window_settings,
@@ -41,6 +49,8 @@ impl PhysApp {
 
     pub fn run(mut self) -> ! {
         let start_time = std::time::Instant::now();
+        let mut last_frame = std::time::Instant::now();
+        let mut frame: u128 = 0;
         self.event_loop.run(move |event, _, control_flow| {
             self.renderer.handle_event(&event);
             match event {
@@ -53,6 +63,23 @@ impl PhysApp {
                 },
                 Event::RedrawRequested(_) => {
                     self.renderer.render(&mut self.scene, start_time);
+                    // draw
+                    let dt = last_frame.elapsed().as_secs_f32();
+
+                    let mut brush = self.renderer.brush.take().unwrap();
+                    for object in self.scene.objects.iter_mut() {
+                        object.render(&mut brush, dt, frame);
+                    }
+                    self.renderer.brush = Some(brush);
+
+                    // update
+                    for object in self.scene.objects.iter_mut() {
+                        object.update(dt, frame, None);
+                    }
+
+                    last_frame = std::time::Instant::now();
+                    frame += 1;
+                    
                 }
                 Event::MainEventsCleared => {
                     self.renderer.window.request_redraw();
@@ -76,23 +103,33 @@ impl WindowSettings {
 }
 
 // ====< SCENE >====
+// Scene, Brush, dt, frame count
+type UpdateFn = Box<dyn FnMut(&mut Scene, &mut Brush, f32, u128)>;
 pub struct Scene {
-    pub objects: Vec<Box<dyn PhysRenderable>>,
     pub ui: Option<Box<dyn EguiUI>>,
-    pub background_color: Color
+    pub background_color: Color,
+
+    pub objects: Vec<Box<dyn PhysRenderable>>,
+
+    // pub update: Option<UpdateFn>,
+
 }
 impl Default for Scene {
     fn default() -> Self {
         Self {
-            objects: Vec::new(),
             ui: None,
-            background_color: StandardColorPalette::BACKGROUND
+            background_color: StandardColorPalette::BACKGROUND,
+            objects: Vec::new(),
+            // update: None,
         }
     }
 }
 impl Scene {
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            // update,
+            ..Default::default()
+        }
     }
 
     pub fn add_object(&mut self, object: Box<dyn PhysRenderable>) {
@@ -100,9 +137,14 @@ impl Scene {
     }
 }
 
+// ====< DATA COLLECTOR >====
+pub struct DataCollector {
+}
+
 // ====< TRAITS >====
 pub trait PhysRenderable {
-    fn render(&self, renderer: &mut Renderer);
+    fn render(&self, renderer: &mut Brush, dt: f32, frame: u128);
+    fn update(&mut self, dt: f32, frame: u128, data_collector: Option<&mut DataCollector>);
 }
 
 pub trait EguiUI {

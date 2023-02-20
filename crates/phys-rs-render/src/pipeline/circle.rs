@@ -50,12 +50,20 @@ pub struct CirclePipeline {
 
     pipeline: wgpu::RenderPipeline,
 
-    circles: Option<Vec<Circle>>,
+    circles: Vec<Circle>,
 }
 
 impl CirclePipeline {
-    pub fn set_circles(&mut self, circles: Option<Vec<Circle>>) {
+    pub fn set_circles(&mut self, circles: Vec<Circle>) {
         self.circles = circles;
+    }
+
+    pub fn add_circle(&mut self, circle: Circle) {
+        self.circles.push(circle);
+    }
+
+    pub fn clear(&mut self) {
+        self.circles.clear();
     }
 }
 
@@ -67,16 +75,16 @@ impl PhysPipeline for CirclePipeline {
             instances: instance_buffer,
             index_buffer,
             pipeline,
-            circles: Some(Vec::new()),
+            circles: Vec::new(),
         }
     }
 
     fn execute(&self, renderer: &mut Renderer, encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView) {
-        if self.circles.is_none() {
+        if self.circles.is_empty() {
             return;
         }
 
-        let circles = self.circles.as_ref().unwrap();
+        let circles = &self.circles;
         write_buffer!(circles, self, renderer, encoder);
 
         let mut render_pass = render_pass!(encoder, view);
