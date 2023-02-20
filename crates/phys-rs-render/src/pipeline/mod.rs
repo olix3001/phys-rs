@@ -1,13 +1,16 @@
 use crate::renderer::Renderer;
 
 mod grid;
+mod circle;
 
 pub mod pipelines {
     pub use super::grid::GridPipeline;
+    pub use super::circle::CirclePipeline;
 }
 
 pub mod elements {
     pub use super::grid::Grid;
+    pub use super::circle::Circle;
 }
 
 pub trait PhysPipeline {
@@ -19,6 +22,7 @@ pub trait PhysPipeline {
 #[macro_export]
 macro_rules! create_pipeline {
     ($name:ident, $id:ident { renderer: $renderer:ident, max_default: $max_default:ident, index: $index:ident }) => {{
+        use wgpu::util::DeviceExt;
         // Create shader
         let shader = $renderer.device.create_shader_module(wgpu::include_wgsl!(concat!("../shaders/", stringify!($name), ".wgsl")));    
 
@@ -51,7 +55,7 @@ macro_rules! create_pipeline {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: "vs_main",
-                buffers: &[Grid::desc()],
+                buffers: &[$id::desc()],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,

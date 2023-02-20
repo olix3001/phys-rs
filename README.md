@@ -7,7 +7,8 @@ Phys rs is a library for drawing physics related things
 -   [x] Grid
 -   [ ] Text
 -   [ ] Primitive shapes
-    -   [ ] circle
+    -   [x] circle
+    -   [ ] quad?
     -   [ ] polygon
 -   [ ] Utilities
     -   [ ] Forces

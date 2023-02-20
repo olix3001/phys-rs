@@ -4,7 +4,7 @@ use winit::{window::{WindowBuilder}, dpi::PhysicalSize, event_loop::{EventLoop, 
 mod renderer;
 mod color;
 mod vec2;
-mod pipelines;
+mod pipeline;
 
 use renderer::Renderer;
 

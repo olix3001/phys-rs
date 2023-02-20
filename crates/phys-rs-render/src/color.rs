@@ -27,6 +27,7 @@ impl Color {
         Self { r, g, b, a }
     }
 
+    #[allow(clippy::wrong_self_convention)]
     pub fn to_linear_rgb(&self) -> [f32; 4] {
         let f = |xu: u32| {
             let x = (xu & 0xFF) as f32 / 255.0;
@@ -48,6 +49,11 @@ pub struct StandardColorPalette {}
 impl StandardColorPalette {
     pub const BACKGROUND: Color = Color::new_const(0.0588, 0.0666, 0.0705, 1.0);
     pub const GRID: Color = Color::new_const(0.2, 0.2, 0.2, 1.0);
+
+    pub const WHITE: Color = Color::new_const(1.0, 1.0, 250.0/255.0, 1.0);
+    pub const BLUE: Color = Color::new_const(1.0/255.0, 111.0/255.0, 185.0/255.0, 1.0);
+    pub const GREEN: Color = Color::new_const(4.0/255.0, 167.0/255.0, 119.0/255.0, 1.0);
+    pub const RED: Color = Color::new_const(236.0/255.0, 78.0/255.0, 32.0/255.0, 1.0);
 }
 
 

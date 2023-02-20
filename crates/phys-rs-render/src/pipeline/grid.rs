@@ -1,7 +1,6 @@
-use std::ops::DerefMut;
 
 use bytemuck::{Pod, Zeroable};
-use wgpu::{Buffer, RenderPipeline, util::DeviceExt};
+use wgpu::{Buffer, RenderPipeline};
 
 use crate::{vec2::Vector2, renderer::Renderer, color::Color, create_pipeline, write_buffer, render_pass};
 
@@ -43,7 +42,7 @@ impl Grid {
     }
 
     pub fn create(renderer: &Renderer, pos: Vector2, size: Vector2, color: Color, spacing: f32, thickness: f32, subdivisions: u32) -> Self {
-        let window_size = (renderer.window.inner_size().width as u32, renderer.window.inner_size().height as u32);
+        let window_size = (renderer.window.inner_size().width, renderer.window.inner_size().height);
         Self {
             top_left: pos.to_ndc(window_size).into(),
             bottom_right: (pos + size).to_ndc(window_size).into(),

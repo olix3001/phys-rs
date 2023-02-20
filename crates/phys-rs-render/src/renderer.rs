@@ -4,10 +4,11 @@ use egui_wgpu_backend::RenderPass;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
-use crate::{Scene, pipelines::{pipelines::GridPipeline, PhysPipeline, elements::Grid}, color::StandardColorPalette};
+use crate::{Scene, pipeline::{pipelines::{GridPipeline, CirclePipeline}, PhysPipeline, elements::Grid}, color::StandardColorPalette, vec2::Vector2};
 
 pub struct RenderPipelines {
     grid: GridPipeline,
+    circle: CirclePipeline,
 }
 
 #[repr(C)]
@@ -80,7 +81,7 @@ impl Renderer {
 
         let egui_rpass = RenderPass::new(&device, surface_format, 1);
 
-        let staging_belt = wgpu::util::StagingBelt::new(1024);
+        let staging_belt = wgpu::util::StagingBelt::new(10 * 1024);
 
         // Globals
         let globals = Globals {
@@ -99,7 +100,7 @@ impl Renderer {
             label: Some("Globals Bind Group Layout"),
             entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
@@ -141,12 +142,23 @@ impl Renderer {
             has_to_update_globals: false,
         };
 
+        // Grid
         let mut grid_pipeline = GridPipeline::create(&mut s);
         grid_pipeline.set_grids(vec![
             Grid::fullscreen(StandardColorPalette::GRID, 30.0, 1.0, 5),
         ]);
+
+        // Circle
+        let mut circle_pipeline = CirclePipeline::create(&mut s);
+        // TODO: remove, this is just for testing
+        circle_pipeline.set_circles(Some(vec![
+            crate::pipeline::elements::Circle::create(Vector2::new(100.0, 100.0), 25.0, StandardColorPalette::WHITE, 0.0),
+            crate::pipeline::elements::Circle::create(Vector2::new(200.0, 100.0), 25.0, StandardColorPalette::GREEN, 2.0),
+        ]));
+
         let pipelines = RenderPipelines {
-            grid: grid_pipeline
+            grid: grid_pipeline,
+            circle: circle_pipeline,
         };
 
         Self {
@@ -161,6 +173,7 @@ impl Renderer {
         self.surface.configure(&self.device, &self.surface_config);
         
         self.globals.u_resolution = [new_size.width as f32, new_size.height as f32];
+        self.has_to_update_globals = true;
     }
 
     pub fn update_uniforms(&mut self, encoder: &mut wgpu::CommandEncoder) {
@@ -211,6 +224,7 @@ impl Renderer {
         if self.pipelines.is_some() {
             let pipelines = self.pipelines.take().unwrap();
             pipelines.grid.execute(self, &mut encoder, &view);
+            pipelines.circle.execute(self, &mut encoder, &view);
             self.pipelines = Some(pipelines)
         }
 
