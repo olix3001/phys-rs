@@ -3,11 +3,13 @@ use crate::renderer::Renderer;
 mod grid;
 mod circle;
 mod poly;
+mod quad;
 
 pub mod pipelines {
     pub use super::grid::GridPipeline;
     pub use super::circle::CirclePipeline;
     pub use super::poly::PolyPipeline;
+    pub use super::quad::QuadPipeline;
 }
 
 pub mod elements {
@@ -15,6 +17,7 @@ pub mod elements {
     pub use super::circle::Circle;
     pub use super::poly::Vertex;
     pub use super::poly::Primitive;
+    pub use super::quad::Quad;
 }
 
 pub trait PhysPipeline {

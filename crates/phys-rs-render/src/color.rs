@@ -54,6 +54,8 @@ impl StandardColorPalette {
     pub const BLUE: Color = Color::new_const(1.0/255.0, 111.0/255.0, 185.0/255.0, 1.0);
     pub const GREEN: Color = Color::new_const(4.0/255.0, 167.0/255.0, 119.0/255.0, 1.0);
     pub const RED: Color = Color::new_const(236.0/255.0, 78.0/255.0, 32.0/255.0, 1.0);
+
+    pub const TRANSPARENT: Color = Color::new_const(0.0, 0.0, 0.0, 0.0);
 }
 
 

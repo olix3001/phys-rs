@@ -5,7 +5,7 @@ use lyon::{geom::Box2D, path::builder::BorderRadii};
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
-use crate::{Scene, pipeline::{pipelines::{GridPipeline, CirclePipeline, PolyPipeline}, PhysPipeline, elements::{Grid, Circle, Primitive}}, color::{StandardColorPalette, Color}, vec2::Vector2};
+use crate::{Scene, pipeline::{pipelines::{GridPipeline, CirclePipeline, PolyPipeline, QuadPipeline}, PhysPipeline, elements::{Grid, Circle, Primitive, Quad}}, color::{StandardColorPalette, Color}, vec2::Vector2};
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
@@ -259,6 +259,7 @@ pub struct Brush {
     pub grid_pipeline: GridPipeline,
     pub circle_pipeline: CirclePipeline,
     pub polygon_pipeline: PolyPipeline,
+    pub quad_pipeline: QuadPipeline,
 }
 
 impl Brush {
@@ -271,6 +272,7 @@ impl Brush {
             grid_pipeline: grid,
             circle_pipeline: CirclePipeline::create(renderer),
             polygon_pipeline: PolyPipeline::create(renderer),
+            quad_pipeline: QuadPipeline::create(renderer),
         }
     }
 
@@ -278,11 +280,14 @@ impl Brush {
         self.grid_pipeline.execute(renderer, encoder, view);
         self.circle_pipeline.execute(renderer, encoder, view);
         self.polygon_pipeline.execute(renderer, encoder, view);
+        self.quad_pipeline.execute(renderer, encoder, view);
     }
 
     // ====< BASIC >====
     pub fn clear(&mut self) {
         self.circle_pipeline.clear();
+        self.polygon_pipeline.clear();
+        self.quad_pipeline.clear();
     }
 
     // ====< PRIMITIVES >====
@@ -295,7 +300,7 @@ impl Brush {
     }
 
     // ====< POLYGON >====
-    pub fn draw_aaquad(&mut self, a: Vector2, b: Vector2, color: Color) {
+    pub fn draw_aaquad_filled(&mut self, a: Vector2, b: Vector2, color: Color) {
         self.polygon_pipeline.tesselate_fn(|builder| {
             builder.add_rectangle(
                 &Box2D { min: a.into(), max: b.into() },
@@ -309,17 +314,9 @@ impl Brush {
         }))
     }
 
-    pub fn draw_aarquad(&mut self, a: Vector2, b: Vector2, color: Color, radius: f32) {
-        self.polygon_pipeline.tesselate_fn(|builder| {
-            builder.add_rounded_rectangle(
-                &Box2D { min: a.into(), max: b.into() },
-                &BorderRadii::new(radius),
-                lyon::path::Winding::Positive
-            );
-        }, Some(Primitive {
-            color: color.into(),
-            origin: Vector2::zero().into(),
-            ..Default::default()
-        }))
+    pub fn draw_aarquad_filled(&mut self, a: Vector2, b: Vector2, color: Color, radius: f32) {
+        let center = (a + b) / 2.0;
+        let size = b - a;
+        self.quad_pipeline.add_quad(Quad::create(center, size, color, 2.0, radius, StandardColorPalette::TRANSPARENT, 0.5));
     }
 }

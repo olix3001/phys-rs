@@ -1,4 +1,4 @@
-use std::ops::{Add, Mul, AddAssign};
+use std::ops::{Add, Mul, AddAssign, Div, Sub};
 
 use lyon::geom::{euclid::{Point2D, UnknownUnit}, point};
 
@@ -86,6 +86,28 @@ impl Mul<f32> for Vector2 {
         Vector2 {
             x: self.x * other,
             y: self.y * other,
+        }
+    }
+}
+
+impl Sub<Vector2> for Vector2 {
+    type Output = Vector2;
+
+    fn sub(self, other: Vector2) -> Vector2 {
+        Vector2 {
+            x: self.x - other.x,
+            y: self.y - other.y,
+        }
+    }
+}
+
+impl Div<f32> for Vector2 {
+    type Output = Vector2;
+
+    fn div(self, other: f32) -> Vector2 {
+        Vector2 {
+            x: self.x / other,
+            y: self.y / other,
         }
     }
 }
