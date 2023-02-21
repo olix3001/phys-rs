@@ -93,7 +93,7 @@ impl PhysPipeline for GridPipeline {
         }
     }
 
-    fn execute(&self, renderer: &mut crate::renderer::Renderer, encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView) {
+    fn execute(&mut self, renderer: &mut crate::renderer::Renderer, encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView) {
         if self.grids.is_none() {
             return;
         }

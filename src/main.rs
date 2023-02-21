@@ -8,11 +8,12 @@ struct Mass {
 
 impl PhysRenderable for Mass {
     fn render(&self, brush: &mut Brush, dt: f32, frame: u128) {
-        brush.draw_circle_filled(self.position, self.radius, ColorPalette::RED);
+        // brush.draw_circle_filled(self.position, self.radius, ColorPalette::RED);
+        brush.draw_aarquad(self.position, self.position + Vector2::new(100.0, 100.0), ColorPalette::RED, 30.0);
     }
 
     fn update(&mut self, dt: f32, frame: u128, _data_collector: Option<&mut DataCollector>) {
-        self.position += self.direction * dt;
+        // self.position += self.direction * dt;
         self.direction += Vector2::new(0.0, 0.5);
     }
 }

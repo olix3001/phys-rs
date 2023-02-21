@@ -79,7 +79,7 @@ impl PhysPipeline for CirclePipeline {
         }
     }
 
-    fn execute(&self, renderer: &mut Renderer, encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView) {
+    fn execute(&mut self, renderer: &mut Renderer, encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView) {
         if self.circles.is_empty() {
             return;
         }

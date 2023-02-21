@@ -1,10 +1,11 @@
 use bytemuck::{Zeroable, Pod};
-use egui::{FontDefinitions};
+use egui::FontDefinitions;
 use egui_wgpu_backend::RenderPass;
+use lyon::{geom::Box2D, path::builder::BorderRadii};
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
-use crate::{Scene, pipeline::{pipelines::{GridPipeline, CirclePipeline}, PhysPipeline, elements::{Grid, Circle}}, color::{StandardColorPalette, Color}, vec2::Vector2};
+use crate::{Scene, pipeline::{pipelines::{GridPipeline, CirclePipeline, PolyPipeline}, PhysPipeline, elements::{Grid, Circle, Primitive}}, color::{StandardColorPalette, Color}, vec2::Vector2};
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
@@ -257,6 +258,7 @@ pub struct Brush {
     // pipelines
     pub grid_pipeline: GridPipeline,
     pub circle_pipeline: CirclePipeline,
+    pub polygon_pipeline: PolyPipeline,
 }
 
 impl Brush {
@@ -268,12 +270,14 @@ impl Brush {
         Self {
             grid_pipeline: grid,
             circle_pipeline: CirclePipeline::create(renderer),
+            polygon_pipeline: PolyPipeline::create(renderer),
         }
     }
 
     pub fn execute(&mut self, renderer: &mut Renderer, encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView) {
         self.grid_pipeline.execute(renderer, encoder, view);
         self.circle_pipeline.execute(renderer, encoder, view);
+        self.polygon_pipeline.execute(renderer, encoder, view);
     }
 
     // ====< BASIC >====
@@ -288,5 +292,34 @@ impl Brush {
     }
     pub fn draw_circle_filled(&mut self, center: Vector2, radius: f32, color: Color) {
         self.circle_pipeline.add_circle(Circle::create(center, radius, color, 0.0));
+    }
+
+    // ====< POLYGON >====
+    pub fn draw_aaquad(&mut self, a: Vector2, b: Vector2, color: Color) {
+        self.polygon_pipeline.tesselate_fn(|builder| {
+            builder.add_rectangle(
+                &Box2D { min: a.into(), max: b.into() },
+                lyon::path::Winding::Positive
+            );
+        }, Some(Primitive {
+            color: color.into(),
+            angle: 0.0,
+            origin: Vector2::zero().into(),
+            ..Default::default()
+        }))
+    }
+
+    pub fn draw_aarquad(&mut self, a: Vector2, b: Vector2, color: Color, radius: f32) {
+        self.polygon_pipeline.tesselate_fn(|builder| {
+            builder.add_rounded_rectangle(
+                &Box2D { min: a.into(), max: b.into() },
+                &BorderRadii::new(radius),
+                lyon::path::Winding::Positive
+            );
+        }, Some(Primitive {
+            color: color.into(),
+            origin: Vector2::zero().into(),
+            ..Default::default()
+        }))
     }
 }

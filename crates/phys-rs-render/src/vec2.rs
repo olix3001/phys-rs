@@ -1,5 +1,7 @@
 use std::ops::{Add, Mul, AddAssign};
 
+use lyon::geom::{euclid::{Point2D, UnknownUnit}, point};
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vector2 {
     pub x: f32,
@@ -44,6 +46,12 @@ impl Vector2 {
 impl From<Vector2> for [f32; 2] {
     fn from(vec: Vector2) -> Self {
         [vec.x, vec.y]
+    }
+}
+
+impl From<Vector2> for Point2D<f32, UnknownUnit> {
+    fn from(vec: Vector2) -> Self {
+        point(vec.x, vec.y)
     }
 }
 

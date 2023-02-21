@@ -2,19 +2,23 @@ use crate::renderer::Renderer;
 
 mod grid;
 mod circle;
+mod poly;
 
 pub mod pipelines {
     pub use super::grid::GridPipeline;
     pub use super::circle::CirclePipeline;
+    pub use super::poly::PolyPipeline;
 }
 
 pub mod elements {
     pub use super::grid::Grid;
     pub use super::circle::Circle;
+    pub use super::poly::Vertex;
+    pub use super::poly::Primitive;
 }
 
 pub trait PhysPipeline {
-    fn execute(&self, renderer: &mut Renderer, encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView);
+    fn execute(&mut self, renderer: &mut Renderer, encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView);
     fn create(renderer: &mut Renderer) -> Self;
 }
 
@@ -86,16 +90,20 @@ macro_rules! create_pipeline {
 
 #[macro_export]
 macro_rules! write_buffer {
-    ($inst:ident, $self:ident, $renderer:ident, $encoder:ident) => {{
+    ($inst:expr, $self:ident, $renderer:ident, $encoder:ident, $buffer:expr) => {{
         let instance_bytes: &[u8] = bytemuck::cast_slice($inst.as_slice());
         let mut instance_buffer = $renderer.staging_belt.write_buffer(
             $encoder,
-            &$self.instances,
+            &$buffer,
             0,
             wgpu::BufferSize::new(instance_bytes.len() as u64).unwrap(),
             &$renderer.device);
 
         instance_buffer.copy_from_slice(instance_bytes);
+    }};
+
+    ($inst:expr, $self:ident, $renderer:ident, $encoder:ident) => {{
+        write_buffer!($inst, $self, $renderer, $encoder, $self.instances)
     }};
 }
 

@@ -16,3 +16,4 @@ egui_winit_platform = "0.16.0"
 egui_wgpu_backend = "0.20.0"
 
 bytemuck = "1.13"
+lyon = "1"
