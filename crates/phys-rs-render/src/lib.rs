@@ -62,13 +62,13 @@ impl PhysApp {
                     _ => (),
                 },
                 Event::RedrawRequested(_) => {
-                    self.renderer.render(&mut self.scene, start_time);
+                    self.renderer.render_begin(&mut self.scene, start_time);
                     // draw
                     let dt = last_frame.elapsed().as_secs_f32();
 
                     let mut brush = self.renderer.brush.take().unwrap();
                     for object in self.scene.objects.iter_mut() {
-                        object.render(&mut brush, dt, frame);
+                        object.render(&mut brush, &mut self.renderer, dt, frame);
                     }
                     self.renderer.brush = Some(brush);
 
@@ -77,6 +77,7 @@ impl PhysApp {
                         object.update(dt, frame, None);
                     }
 
+                    self.renderer.render_end();
                     last_frame = std::time::Instant::now();
                     frame += 1;
                     
@@ -143,7 +144,7 @@ pub struct DataCollector {
 
 // ====< TRAITS >====
 pub trait PhysRenderable {
-    fn render(&self, renderer: &mut Brush, dt: f32, frame: u128);
+    fn render(&self, brush: &mut Brush, renderer: &mut Renderer, dt: f32, frame: u128);
     fn update(&mut self, dt: f32, frame: u128, data_collector: Option<&mut DataCollector>);
 }
 

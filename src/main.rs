@@ -7,8 +7,9 @@ struct Mass {
 }
 
 impl PhysRenderable for Mass {
-    fn render(&self, brush: &mut Brush, dt: f32, frame: u128) {
+    fn render(&self, brush: &mut Brush, renderer: &mut Renderer, dt: f32, frame: u128) {
         // brush.draw_circle_filled(self.position, self.radius, ColorPalette::RED);
+        brush.draw_circle_filled(self.position + Vector2::new(50.0, 10.0), self.radius, ColorPalette::BLUE);
         brush.draw_aarquad_filled(self.position, self.position + Vector2::new(100.0, 100.0), ColorPalette::RED, 15.0);
     }
 

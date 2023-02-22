@@ -34,6 +34,11 @@ pub struct Renderer {
     pub brush: Option<Brush>,
 
     has_to_update_globals: bool,
+
+    pub encoder: Option<wgpu::CommandEncoder>,
+    pub view: Option<wgpu::TextureView>,
+    pub frame: Option<wgpu::SurfaceTexture>,
+
 }
 
 impl Renderer {
@@ -136,6 +141,10 @@ impl Renderer {
 
             brush: None,
             has_to_update_globals: false,
+
+            encoder: None,
+            view: None,
+            frame: None,
         };
 
         // Brush
@@ -172,7 +181,7 @@ impl Renderer {
         self.platform.handle_event(event);
     }
 
-    pub fn render(&mut self, scene: &mut Scene, start_time: std::time::Instant) {
+    pub fn render_begin(&mut self, scene: &mut Scene, start_time: std::time::Instant) {
         // clear the screen
         let frame = self.surface.get_current_texture().unwrap();
         let view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
@@ -203,8 +212,7 @@ impl Renderer {
         // Draw pipelines
         if self.brush.is_some() {
             let mut pipelines = self.brush.take().unwrap();
-            pipelines.execute(self, &mut encoder, &view);
-            pipelines.clear();
+            pipelines.execute_once(self, &mut encoder, &view);
             self.brush = Some(pipelines)
         }
 
@@ -217,38 +225,65 @@ impl Renderer {
             scene.ui.as_mut().unwrap().ui(&self.platform.context());
         }
 
-        // Finish drawing egui
-        let screen_descriptor = egui_wgpu_backend::ScreenDescriptor {
-            physical_width: self.surface_config.width,
-            physical_height: self.surface_config.height,
-            scale_factor: self.window.scale_factor() as f32,
-        };
-        let full_output = self.platform.end_frame(Some(&self.window));
-        let paint_jobs = self.platform.context().tessellate(full_output.shapes);
-        let tdelta: egui::TexturesDelta = full_output.textures_delta;
-        self.egui_rpass.add_textures(&self.device, &self.queue, &tdelta).expect("add texture ok");
-        self.egui_rpass.update_buffers(&self.device, &self.queue, &paint_jobs, &screen_descriptor);
+        self.encoder = Some(encoder);
+        self.view = Some(view);
+        self.frame = Some(frame);
+    }
 
-        // execute egui render pass
-        self.egui_rpass.execute(
-            &mut encoder,
-            &view,
-            &paint_jobs,
-            &screen_descriptor,
-            None
-        ).unwrap();
+    pub fn execute_brush(&mut self, brush: &mut Brush) {
+        let view = self.view.take().unwrap();
+        let mut encoder = self.encoder.take().unwrap();
+
+        brush.execute(self, &mut encoder, &view);
+        brush.clear();
+
+        self.encoder = Some(encoder);
+        self.view = Some(view);
+    }
+
+    pub fn render_end(&mut self) {
+        if let(Some(mut encoder), Some(view), Some(frame)) = (self.encoder.take(), self.view.take(), self.frame.take()) {
+            // Clear pipelines
+            if self.brush.is_some() {
+                let mut pipelines = self.brush.take().unwrap();
+                pipelines.execute(self, &mut encoder, &view);
+                pipelines.clear();
+                self.brush = Some(pipelines)
+            }
+
+            // Finish drawing egui
+            let screen_descriptor = egui_wgpu_backend::ScreenDescriptor {
+                physical_width: self.surface_config.width,
+                physical_height: self.surface_config.height,
+                scale_factor: self.window.scale_factor() as f32,
+            };
+            let full_output = self.platform.end_frame(Some(&self.window));
+            let paint_jobs = self.platform.context().tessellate(full_output.shapes);
+            let tdelta: egui::TexturesDelta = full_output.textures_delta;
+            self.egui_rpass.add_textures(&self.device, &self.queue, &tdelta).expect("add texture ok");
+            self.egui_rpass.update_buffers(&self.device, &self.queue, &paint_jobs, &screen_descriptor);
+
+            // execute egui render pass
+            self.egui_rpass.execute(
+                &mut encoder,
+                &view,
+                &paint_jobs,
+                &screen_descriptor,
+                None
+            ).unwrap();
+
+            // Clear the egui textures
+            self.egui_rpass.remove_textures(tdelta).expect("remove textures ok");
 
 
-        // Finish drawing
-        self.staging_belt.finish();
-        self.queue.submit(std::iter::once(encoder.finish()));
-        frame.present();
+            // Finish drawing
+            self.staging_belt.finish();
+            self.queue.submit(std::iter::once(encoder.finish()));
+            frame.present();
 
-        self.staging_belt.recall();
+            self.staging_belt.recall();
 
-        // Clear the egui textures
-        self.egui_rpass.remove_textures(tdelta).expect("remove textures ok");
-
+        }
     }
 }
 
@@ -276,8 +311,10 @@ impl Brush {
         }
     }
 
-    pub fn execute(&mut self, renderer: &mut Renderer, encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView) {
+    pub fn execute_once(&mut self, renderer: &mut Renderer, encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView) {
         self.grid_pipeline.execute(renderer, encoder, view);
+    }
+    pub fn execute(&mut self, renderer: &mut Renderer, encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView) {
         self.circle_pipeline.execute(renderer, encoder, view);
         self.polygon_pipeline.execute(renderer, encoder, view);
         self.quad_pipeline.execute(renderer, encoder, view);
@@ -317,6 +354,11 @@ impl Brush {
     pub fn draw_aarquad_filled(&mut self, a: Vector2, b: Vector2, color: Color, radius: f32) {
         let center = (a + b) / 2.0;
         let size = b - a;
-        self.quad_pipeline.add_quad(Quad::create(center, size, color, 2.0, radius, StandardColorPalette::TRANSPARENT, 0.5));
+        self.quad_pipeline.add_quad(Quad::create(center, size, color, 0.0, radius, StandardColorPalette::TRANSPARENT, 0.5));
+    }
+
+    // ====< FLUSH >====
+    pub fn flush(&mut self, renderer: &mut Renderer) {
+        renderer.execute_brush(self); 
     }
 }
