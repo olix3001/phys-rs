@@ -1,4 +1,4 @@
-use phys_rs_render::{PhysApp, WindowSettings, Scene, EguiUI, ColorPalette, math::Vector2, PhysRenderable, Renderer, Brush, DataCollector};
+use phys_rs_render::{PhysApp, WindowSettings, Scene, ColorPalette, math::Vector2, PhysRenderable, Renderer, Brush, DataCollector, components::ui::BasicDataUI};
 
 struct Mass {
     radius: f32,
@@ -29,20 +29,9 @@ fn main() {
         direction: Vector2::new(100.0, 0.0),
     }));
 
-    scene.ui = Some(Box::new(ExampleUI {}));
+    scene.ui = Some(Box::new(BasicDataUI::new()));
 
     app.set_scene(scene);
 
     app.run();
-}
-
-// Simple ui
-pub struct ExampleUI {}
-
-impl EguiUI for ExampleUI {
-    fn ui(&mut self, ctx: &egui::Context) {
-        egui::Window::new("Hello World").show(ctx, |ui| {
-            ui.label("Hello World!");
-        }); 
-    }
 }

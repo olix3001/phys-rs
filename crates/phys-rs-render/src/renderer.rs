@@ -5,7 +5,7 @@ use lyon::{geom::Box2D, path::builder::BorderRadii};
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
-use crate::{Scene, pipeline::{pipelines::{GridPipeline, CirclePipeline, PolyPipeline, QuadPipeline}, PhysPipeline, elements::{Grid, Circle, Primitive, Quad}}, color::{StandardColorPalette, Color}, vec2::Vector2};
+use crate::{Scene, pipeline::{pipelines::{GridPipeline, CirclePipeline, PolyPipeline, QuadPipeline}, PhysPipeline, elements::{Grid, Circle, Primitive, Quad}}, color::{StandardColorPalette, Color}, vec2::Vector2, PhysApp};
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
@@ -39,6 +39,8 @@ pub struct Renderer {
     pub view: Option<wgpu::TextureView>,
     pub frame: Option<wgpu::SurfaceTexture>,
 
+    pub draw_calls: u32,
+    pub ldt: f32, // Last delta time
 }
 
 impl Renderer {
@@ -145,6 +147,9 @@ impl Renderer {
             encoder: None,
             view: None,
             frame: None,
+
+            draw_calls: 0,
+            ldt: 0.0,
         };
 
         // Brush
@@ -213,17 +218,12 @@ impl Renderer {
         if self.brush.is_some() {
             let mut pipelines = self.brush.take().unwrap();
             pipelines.execute_once(self, &mut encoder, &view);
-            self.brush = Some(pipelines)
+            self.brush = Some(pipelines);
         }
 
         // draw egui
         self.platform.update_time(start_time.elapsed().as_secs_f64());
         self.platform.begin_frame();
-
-        // draw UI
-        if scene.ui.is_some() {
-            scene.ui.as_mut().unwrap().ui(&self.platform.context());
-        }
 
         self.encoder = Some(encoder);
         self.view = Some(view);
@@ -241,7 +241,7 @@ impl Renderer {
         self.view = Some(view);
     }
 
-    pub fn render_end(&mut self) {
+    pub fn render_end(&mut self, scene: &mut Scene) {
         if let(Some(mut encoder), Some(view), Some(frame)) = (self.encoder.take(), self.view.take(), self.frame.take()) {
             // Clear pipelines
             if self.brush.is_some() {
@@ -251,6 +251,10 @@ impl Renderer {
                 self.brush = Some(pipelines)
             }
 
+            // draw UI
+            if scene.ui.is_some() {
+                scene.ui.as_mut().unwrap().ui(&self.platform.context(), self);
+            }
             // Finish drawing egui
             let screen_descriptor = egui_wgpu_backend::ScreenDescriptor {
                 physical_width: self.surface_config.width,
@@ -282,8 +286,14 @@ impl Renderer {
             frame.present();
 
             self.staging_belt.recall();
-
+            self.draw_calls = 0;
         }
+    }
+
+
+    // ====< DATA >====
+    pub fn get_window_size(&self) -> (u32, u32) {
+        (self.surface_config.width, self.surface_config.height)
     }
 }
 
@@ -360,5 +370,6 @@ impl Brush {
     // ====< FLUSH >====
     pub fn flush(&mut self, renderer: &mut Renderer) {
         renderer.execute_brush(self); 
+        self.clear();
     }
 }

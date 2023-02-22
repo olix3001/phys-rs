@@ -173,6 +173,7 @@ impl PhysPipeline for PolyPipeline {
                 let offset = i;
 
                 render_pass.draw_indexed(index_offset..index_offset+primitive.indices_count as u32, 0, 0..1);
+                renderer.draw_calls += 1;
 
                 index_offset += primitive.indices_count;
                 i += 1;

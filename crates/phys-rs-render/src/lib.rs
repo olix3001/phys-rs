@@ -8,6 +8,8 @@ mod color;
 mod vec2;
 mod pipeline;
 
+pub mod components;
+
 pub use renderer::{Renderer, Brush};
 
 // ====< EXPORTS >====
@@ -65,6 +67,7 @@ impl PhysApp {
                     self.renderer.render_begin(&mut self.scene, start_time);
                     // draw
                     let dt = last_frame.elapsed().as_secs_f32();
+                    self.renderer.ldt = dt;
 
                     let mut brush = self.renderer.brush.take().unwrap();
                     for object in self.scene.objects.iter_mut() {
@@ -77,10 +80,9 @@ impl PhysApp {
                         object.update(dt, frame, None);
                     }
 
-                    self.renderer.render_end();
+                    self.renderer.render_end(&mut self.scene);
                     last_frame = std::time::Instant::now();
                     frame += 1;
-                    
                 }
                 Event::MainEventsCleared => {
                     self.renderer.window.request_redraw();
@@ -149,7 +151,7 @@ pub trait PhysRenderable {
 }
 
 pub trait EguiUI {
-    fn ui(&mut self, ctx: &egui::Context);
+    fn ui(&mut self, ctx: &egui::Context, renderer: &Renderer);
 }
 
 // ====< UTILS >====

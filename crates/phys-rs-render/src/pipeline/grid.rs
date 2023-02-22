@@ -110,5 +110,7 @@ impl PhysPipeline for GridPipeline {
         render_pass.set_vertex_buffer(0, self.instances.slice(..));
         render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
         render_pass.draw(0..INDICES.len() as u32, 0..grids.len() as u32);
+
+        renderer.draw_calls += 1;
     }
 }

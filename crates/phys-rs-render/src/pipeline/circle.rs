@@ -94,5 +94,7 @@ impl PhysPipeline for CirclePipeline {
         render_pass.set_vertex_buffer(0, self.instances.slice(..));
         render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
         render_pass.draw_indexed(0..INDICES.len() as u32, 0, 0..circles.len() as u32);
+
+        renderer.draw_calls += 1;
     }
 }
