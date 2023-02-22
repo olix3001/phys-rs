@@ -133,7 +133,12 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
 
     // Draw the border if inner distance is less than the border width
     if (dist > -input.border_width && input.border_width > 0.0) {
-        color = input.border_color;
+        // Anti-alias the border
+        // let border_alpha = 1.0;
+        let border_alpha = 1.0 - smoothstep(-input.border_width, -input.border_width + 0.75, dist);
+
+        // Draw the border
+        color = mix(input.border_color, color, border_alpha);
     }
 
     // Return the color with the alpha

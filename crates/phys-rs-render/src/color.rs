@@ -19,10 +19,11 @@ impl Color {
     }
 
     pub fn from_hex(hex: u32) -> Self {
-        let r = ((hex >> 16) & 0xFF) as f32 / 255.0;
-        let g = ((hex >> 8) & 0xFF) as f32 / 255.0;
-        let b = (hex & 0xFF) as f32 / 255.0;
-        let a = ((hex >> 24) & 0xFF) as f32 / 255.0;
+        // 0xRRGGBBAA
+        let r = ((hex >> 24) & 0xFF) as f32 / 255.0;
+        let g = ((hex >> 16) & 0xFF) as f32 / 255.0;
+        let b = ((hex >> 8) & 0xFF) as f32 / 255.0;
+        let a = (hex & 0xFF) as f32 / 255.0;
 
         Self { r, g, b, a }
     }
@@ -51,6 +52,8 @@ impl StandardColorPalette {
     pub const GRID: Color = Color::new_const(0.2, 0.2, 0.2, 1.0);
 
     pub const WHITE: Color = Color::new_const(1.0, 1.0, 250.0/255.0, 1.0);
+    pub const BLACK: Color = Color::new_const(0.0, 0.0, 0.0, 1.0);
+
     pub const BLUE: Color = Color::new_const(1.0/255.0, 111.0/255.0, 185.0/255.0, 1.0);
     pub const GREEN: Color = Color::new_const(4.0/255.0, 167.0/255.0, 119.0/255.0, 1.0);
     pub const RED: Color = Color::new_const(236.0/255.0, 78.0/255.0, 32.0/255.0, 1.0);

@@ -8,6 +8,8 @@
     - Draw calls count
 */
 
+use egui::{Align, Align2, Vec2};
+
 use crate::{Renderer, EguiUI, PhysApp};
 
 pub struct BasicDataUI { }
@@ -21,7 +23,7 @@ impl BasicDataUI {
 impl EguiUI for BasicDataUI {
     fn ui(&mut self, ctx: &egui::Context, renderer: &Renderer) {
         // window
-        egui::Window::new("Debug data").show(ctx, |ui| {
+        egui::Window::new("Debug data").anchor(Align2::RIGHT_TOP, Vec2::new(-5.0, 5.0)).show(ctx, |ui| {
             // fps
             ui.label(format!("FPS: {}", 1.0/renderer.ldt));
 

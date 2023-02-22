@@ -6,15 +6,15 @@ Phys rs is a library for drawing physics related things
 
 -   [x] Grid
 -   [ ] Text
--   [ ] Primitive shapes
+-   [x] Primitive shapes
     -   [x] circle
-    -   [ ] quad?
-    -   [ ] polygon
+    -   [x] quad
+    -   [x] polygon (partial)
 -   [ ] Utilities
     -   [ ] Forces
     -   [ ] Angles
 -   [ ] More advanced things
-    -   [ ] Springs
+    -   [x] Springs
     -   [ ] Static walls
     -   [ ] Blocks
     -   [ ] Masses

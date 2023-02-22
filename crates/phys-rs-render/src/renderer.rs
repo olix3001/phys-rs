@@ -1,7 +1,7 @@
 use bytemuck::{Zeroable, Pod};
 use egui::FontDefinitions;
 use egui_wgpu_backend::RenderPass;
-use lyon::{geom::Box2D, path::builder::BorderRadii};
+use lyon::{geom::Box2D, path::builder::BorderRadii, math::Vector};
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
@@ -347,7 +347,7 @@ impl Brush {
     }
 
     // ====< POLYGON >====
-    pub fn draw_aaquad_filled(&mut self, a: Vector2, b: Vector2, color: Color) {
+    pub fn draw_quad_filled(&mut self, a: Vector2, b: Vector2, color: Color) {
         self.polygon_pipeline.tesselate_fn(|builder| {
             builder.add_rectangle(
                 &Box2D { min: a.into(), max: b.into() },
@@ -361,10 +361,35 @@ impl Brush {
         }))
     }
 
-    pub fn draw_aarquad_filled(&mut self, a: Vector2, b: Vector2, color: Color, radius: f32) {
+    pub fn draw_rquad_filled(&mut self, a: Vector2, b: Vector2, color: Color, radius: f32) {
         let center = (a + b) / 2.0;
         let size = b - a;
         self.quad_pipeline.add_quad(Quad::create(center, size, color, 0.0, radius, StandardColorPalette::TRANSPARENT, 0.5));
+    }
+
+    // Raw quad
+    pub fn _draw_quad_border_raw(&mut self, center: Vector2, size: Vector2, color: Color, border_thickness: f32, border_color: Color, angle: f32, radius: f32) {
+        self.quad_pipeline.add_quad(Quad::create(center, size, color, border_thickness, radius, border_color, angle));
+    }
+
+
+    // ====< LINES >====
+    pub fn draw_line(&mut self, a: Vector2, b: Vector2, thickness: f32, color: Color) {
+        let center = (a + b) / 2.0;
+        let length = (b - a).length();
+        let angle = -(b - a).angle();
+        let size = Vector2::new(length, thickness);
+
+        self.quad_pipeline.add_quad(Quad::create(center, size, color, 0.0, 0.0, StandardColorPalette::TRANSPARENT, angle));
+    }
+
+    pub fn draw_line_rounded(&mut self, a: Vector2, b: Vector2, thickness: f32, color: Color) {
+        let center = (a + b) / 2.0;
+        let length = (b - a).length();
+        let angle = -(b - a).angle();
+        let size = Vector2::new(length, thickness);
+
+        self.quad_pipeline.add_quad(Quad::create(center, size, color, 0.0, size.y / 2.0, StandardColorPalette::TRANSPARENT, angle));
     }
 
     // ====< FLUSH >====

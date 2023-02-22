@@ -1,4 +1,4 @@
-use std::ops::{Add, Mul, AddAssign, Div, Sub};
+use std::ops::{Add, Mul, AddAssign, Div, Sub, SubAssign, Not, Neg};
 
 use lyon::geom::{euclid::{Point2D, UnknownUnit}, point};
 
@@ -15,6 +15,10 @@ impl Vector2 {
 
     pub fn zero() -> Self {
         Self { x: 0.0, y: 0.0 }
+    }
+
+    pub fn one() -> Self {
+        Self { x: 1.0, y: 1.0 }.normalize()
     }
 
     pub fn to_ndc(&self, window_size: (u32, u32)) -> Self {
@@ -40,6 +44,17 @@ impl Vector2 {
 
     pub fn length(&self) -> f32 {
         (self.x * self.x + self.y * self.y).sqrt()
+    }
+
+    pub fn angle(&self) -> f32 {
+        self.y.atan2(self.x)
+    }
+
+    pub fn rot_90cw(&self) -> Self {
+        Self {
+            x: self.y,
+            y: -self.x,
+        }
     }
 }
 
@@ -68,6 +83,17 @@ impl Add<Vector2> for Vector2 {
         Vector2 {
             x: self.x + other.x,
             y: self.y + other.y,
+        }
+    }
+}
+
+impl Add<f32> for Vector2 {
+    type Output = Vector2;
+
+    fn add(self, other: f32) -> Vector2 {
+        Vector2 {
+            x: self.x + other,
+            y: self.y + other,
         }
     }
 }
@@ -101,6 +127,24 @@ impl Sub<Vector2> for Vector2 {
     }
 }
 
+impl Sub<f32> for Vector2 {
+    type Output = Vector2;
+
+    fn sub(self, other: f32) -> Vector2 {
+        Vector2 {
+            x: self.x - other,
+            y: self.y - other,
+        }
+    }
+}
+
+impl SubAssign<Vector2> for Vector2 {
+    fn sub_assign(&mut self, other: Vector2) {
+        self.x -= other.x;
+        self.y -= other.y;
+    }
+}
+
 impl Div<f32> for Vector2 {
     type Output = Vector2;
 
@@ -108,6 +152,18 @@ impl Div<f32> for Vector2 {
         Vector2 {
             x: self.x / other,
             y: self.y / other,
+        }
+    }
+}
+
+
+impl Neg for Vector2 {
+    type Output = Vector2;
+
+    fn neg(self) -> Vector2 {
+        Vector2 {
+            x: -self.x,
+            y: -self.y,
         }
     }
 }
