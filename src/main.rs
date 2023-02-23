@@ -8,7 +8,7 @@ struct Mass {
 
 impl PhysRenderable for Mass {
     fn render(&self, brush: &mut Brush, renderer: &mut Renderer, dt: f32, frame: u128) {
-        let length = 50.0 + 35.0 * ((frame as f32 / 20.0).sin() + 1.0);
+        let length = 50.0 + 60.0 * ((frame as f32 / 20.0).sin() + 1.0);
         draw_spring(brush, renderer, self.position, self.position + self.direction * length, 1.0, 120.0, 1.0);
     }
 
@@ -19,6 +19,7 @@ impl PhysRenderable for Mass {
 
 fn main() {
     let mut app = PhysApp::new(WindowSettings::new("Phys RS Test".to_string(), (800, 600)));
+    app.updates_per_frame = 1000;
 
     let mut scene = Scene::new();
     scene.add_object(Box::new(Mass {

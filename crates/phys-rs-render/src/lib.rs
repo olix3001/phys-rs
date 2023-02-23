@@ -24,6 +24,8 @@ pub struct PhysApp {
     pub event_loop: EventLoop<()>,
     pub renderer: Renderer,
     pub scene: Scene,
+    pub updates_per_frame: u32,
+    pub avg_update_time: f32,
 }
 
 impl PhysApp {
@@ -42,6 +44,8 @@ impl PhysApp {
             event_loop,
             renderer,
             scene,
+            updates_per_frame: 1,
+            avg_update_time: 0.0,
         }
     }
 
@@ -76,9 +80,14 @@ impl PhysApp {
                     self.renderer.brush = Some(brush);
 
                     // update
-                    for object in self.scene.objects.iter_mut() {
-                        object.update(dt, frame, None);
+                    let dt = dt / self.updates_per_frame as f32;
+                    let update_start = std::time::Instant::now();
+                    for _ in 0..self.updates_per_frame {
+                        for object in self.scene.objects.iter_mut() {
+                            object.update(dt, frame, None);
+                        }
                     }
+                    self.renderer.avg_update_time = update_start.elapsed().as_secs_f32() / self.updates_per_frame as f32;
 
                     self.renderer.render_end(&mut self.scene);
                     last_frame = std::time::Instant::now();

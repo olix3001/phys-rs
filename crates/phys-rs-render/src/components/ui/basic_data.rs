@@ -24,11 +24,10 @@ impl EguiUI for BasicDataUI {
     fn ui(&mut self, ctx: &egui::Context, renderer: &Renderer) {
         // window
         egui::Window::new("Debug data").anchor(Align2::RIGHT_TOP, Vec2::new(-5.0, 5.0)).show(ctx, |ui| {
+            // UI
+            ui.heading("Render");
             // fps
             ui.label(format!("FPS: {}", 1.0/renderer.ldt));
-
-            // delta time
-            ui.label(format!("Delta time: {}", renderer.ldt));
 
             // window size
             let window_size = renderer.get_window_size();
@@ -39,6 +38,17 @@ impl EguiUI for BasicDataUI {
 
             // draw calls count
             ui.label(format!("Draw calls: {}", renderer.draw_calls + 1));
+
+            // Physics
+            ui.separator();
+            ui.heading("Simulation");
+
+            // delta time
+            ui.label(format!("Delta time: {:.8}", renderer.ldt));
+
+            // Average update time
+            ui.label(format!("Average update time: {:.8}", renderer.avg_update_time));
+
         });
     }
 }

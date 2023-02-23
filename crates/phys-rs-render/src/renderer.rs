@@ -41,6 +41,8 @@ pub struct Renderer {
 
     pub draw_calls: u32,
     pub ldt: f32, // Last delta time
+
+    pub avg_update_time: f32,
 }
 
 impl Renderer {
@@ -150,6 +152,7 @@ impl Renderer {
 
             draw_calls: 0,
             ldt: 0.0,
+            avg_update_time: 0.0,
         };
 
         // Brush
